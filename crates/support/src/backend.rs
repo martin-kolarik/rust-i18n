@@ -6,6 +6,8 @@ pub trait Backend: Send + Sync + 'static {
     fn available_locales(&self) -> Vec<&str>;
     /// Get the translation for the given locale and key
     fn translate(&self, locale: &str, key: &str) -> Option<&str>;
+    /// Get all translations for the given locale
+    fn messages_for_locale(&self, locale: &str) -> Option<Vec<(&str, &str)>>;
 }
 
 pub trait BackendExt: Backend {
@@ -40,6 +42,25 @@ where
         self.1
             .translate(locale, key)
             .or_else(|| self.0.translate(locale, key))
+    }
+
+    fn messages_for_locale(&self, locale: &str) -> Option<Vec<(&str, &str)>> {
+        match (
+            self.1.messages_for_locale(locale),
+            self.0.messages_for_locale(locale),
+        ) {
+            (None, None) => None,
+            (None, a) => a,
+            (b, None) => b,
+            (Some(b), Some(a)) => Some(
+                b.into_iter()
+                    .chain(
+                        a.into_iter()
+                            .filter(|(k, _)| self.1.translate(locale, k).is_none()),
+                    )
+                    .collect(),
+            ),
+        }
     }
 }
 
@@ -100,6 +121,12 @@ impl Backend for SimpleBackend {
         }
 
         None
+    }
+
+    fn messages_for_locale(&self, locale: &str) -> Option<Vec<(&str, &str)>> {
+        self.translations
+            .get(locale)
+            .map(|trs| trs.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect())
     }
 }
 
