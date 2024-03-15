@@ -9,7 +9,7 @@ pub use once_cell;
 #[doc(hidden)]
 pub use rust_i18n_macro::{_minify_key, _tr, i18n};
 pub use rust_i18n_support::{
-    load_locales, AtomicStr, Backend, BackendExt, CowStr, MinifyKey, SimpleBackend,
+    load_locales_result, AtomicStr, Backend, BackendExt, CowStr, MinifyKey, SimpleBackend,
     DEFAULT_MINIFY_KEY, DEFAULT_MINIFY_KEY_LEN, DEFAULT_MINIFY_KEY_PREFIX,
     DEFAULT_MINIFY_KEY_THRESH,
 };
