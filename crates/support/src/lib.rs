@@ -44,7 +44,7 @@ pub fn load_locales<F: Fn(&str) -> bool>(
     locales_path: &str,
     ignore_if: F,
 ) -> BTreeMap<String, BTreeMap<String, String>> {
-    match try_load_locales(locales_path, ignore_if) {
+    match try_load_locales(locales_path, ignore_if, false) {
         Ok(locales) => locales,
         Err(error) => panic!("{}", error),
     }
@@ -53,6 +53,7 @@ pub fn load_locales<F: Fn(&str) -> bool>(
 pub fn try_load_locales<F: Fn(&str) -> bool>(
     locales_path: &str,
     ignore_if: F,
+    report_file_lookup_errors: bool,
 ) -> Result<BTreeMap<String, BTreeMap<String, String>>, String> {
     let mut result: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
     let mut translations = BTreeMap::new();
@@ -63,7 +64,11 @@ pub fn try_load_locales<F: Fn(&str) -> bool>(
             if is_debug() {
                 println!("cargo:i18n-error={}", e);
             }
-            return Err(e.to_string())?;
+            return if report_file_lookup_errors {
+                Err(format!("Path '{locales_path}' cannot be normalized: '{e}'"))
+            } else {
+                Ok(result)
+            };
         }
     };
     let locales_path = match locales_path.as_path().to_str() {
@@ -72,7 +77,11 @@ pub fn try_load_locales<F: Fn(&str) -> bool>(
             if is_debug() {
                 println!("cargo:i18n-error=could not convert path");
             }
-            return Err("Could not convert path.".to_string())?;
+            return if report_file_lookup_errors {
+                Err("Could not convert path.".to_string())
+            } else {
+                Ok(result)
+            };
         }
     };
 
@@ -87,7 +96,11 @@ pub fn try_load_locales<F: Fn(&str) -> bool>(
         if is_debug() {
             println!("cargo:i18n-error=path not exists: {}", locales_path);
         }
-        Err(format!("Path '{locales_path}' not found."))?;
+        return if report_file_lookup_errors {
+            Err(format!("Path '{locales_path}' not found."))
+        } else {
+            Ok(result)
+        };
     }
 
     for entry in globwalk::glob(&path_pattern)
